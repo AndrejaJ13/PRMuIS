@@ -1,0 +1,10 @@
+C:\Users\Administrator\Desktop\Projekat\Parking\Client\bin\Debug\Client.exe.config
+C:\Users\Administrator\Desktop\Projekat\Parking\Client\bin\Debug\Client.exe
+C:\Users\Administrator\Desktop\Projekat\Parking\Client\bin\Debug\Client.pdb
+C:\Users\Administrator\Desktop\Projekat\Parking\Client\obj\Debug\Client.csproj.AssemblyReference.cache
+C:\Users\Administrator\Desktop\Projekat\Parking\Client\obj\Debug\Client.csproj.CoreCompileInputs.cache
+C:\Users\Administrator\Desktop\Projekat\Parking\Client\obj\Debug\Client.exe
+C:\Users\Administrator\Desktop\Projekat\Parking\Client\obj\Debug\Client.pdb
+C:\Users\Administrator\Desktop\Projekat\Parking\Client\bin\Debug\Domain.dll
+C:\Users\Administrator\Desktop\Projekat\Parking\Client\bin\Debug\Domain.pdb
+C:\Users\Administrator\Desktop\Projekat\Parking\Client\obj\Debug\Client.csproj.Up2Date
