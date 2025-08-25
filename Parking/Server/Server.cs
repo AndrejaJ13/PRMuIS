@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -38,36 +39,38 @@ namespace Server
 
             while (true)
             {
-                var checkRead = new List<Socket> { udpSocket, tcpSocket };
-                checkRead.AddRange(ClientSockets);
 
-                try
+                if (udpSocket.Poll(1000, SelectMode.SelectRead))
                 {
-                    Socket.Select(checkRead, null, null, 1000000); // 1 second timeout
+                    HandleUdpClient(udpSocket);
+                }
 
-                    foreach (var socket in checkRead)
-                        if (socket == udpSocket)
-                        {
-                            HandleUdpClient(udpSocket);
-                        }
-                        else if (socket == tcpSocket)
-                        {
-                            var clientSocket = tcpSocket.Accept();
-                            ClientSockets.Add(clientSocket);
-                            SendParkingInfo(clientSocket);
-                        }
-                        else
+             
+                if (tcpSocket.Poll(1000, SelectMode.SelectRead))
+                {
+                    var clientSocket = tcpSocket.Accept();
+                    ClientSockets.Add(clientSocket);
+                    SendParkingInfo(clientSocket);
+                }
+
+                for (var i = ClientSockets.Count - 1; i >= 0; i--)
+                {
+                    var socket = ClientSockets[i];
+                    try
+                    {
+                        if (socket.Poll(1000, SelectMode.SelectRead))
                         {
                             HandleTcpClient(socket);
                         }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error: {ex.Message}");
+                    }
+                    catch (Exception )
+                    {
+                        socket.Close();
+                        ClientSockets.RemoveAt(i);
+                    }
                 }
             }
         }
-
         private static void InitializeParkingData()
         {
             Console.Write("Enter number of parking lots: ");
@@ -90,6 +93,7 @@ namespace Server
                     PricePerHour = pricePerHour
                 };
             }
+         
         }
 
         private static void HandleUdpClient(Socket udpSocket)
@@ -172,21 +176,66 @@ namespace Server
                 $"Parking {zauzece.BrojParkinga} now has {parkingLotInfo.OccupiedSpaces} occupied spaces");
         }
 
+        private static void HandleParkingReleaseRequest(Socket clientSocket, string message)
+        {
+            if (!int.TryParse(message.Substring("Hocu da oslobodim: ".Length), out var requestId))
+            {
+                Console.WriteLine("Invalid request ID format received");
+                return;
+            }
+
+            if (!zauzeca.TryGetValue(requestId, out var zauzece))
+            {
+                Console.WriteLine($"Request ID {requestId} not found");
+                return;
+            }
+
+            var price = CalculatePrice(zauzece);
+            clientSocket.Send(Encoding.UTF8.GetBytes(price.ToString()));
+
+            Console.WriteLine(
+                $"Client {clientSocket.RemoteEndPoint} has been delivered the receipt for parking of {price} RSD");
+        }
+
         private static void HandleParkingRelease(string message)
         {
-            var requestId = int.Parse(message.Substring("Oslobađam: ".Length));
+            if (!int.TryParse(message.Substring("Oslobađam: ".Length), out var requestId))
+            {
+                Console.WriteLine("Invalid request ID format received");
+                return;
+            }
 
-            if (!zauzeca.TryGetValue(requestId, out var zauzece)) return;
+            if (!zauzeca.TryGetValue(requestId, out var zauzece))
+            {
+                Console.WriteLine($"Request ID {requestId} not found");
+                return;
+            }
+
+            var price = CalculatePrice(zauzece);
 
             var parkingInfo = ParkingInfos[zauzece.BrojParkinga];
             parkingInfo.OccupiedSpaces -= zauzece.BrojMesta;
 
-            Console.WriteLine(
-                $"Parking {zauzece.BrojParkinga} now has {parkingInfo.OccupiedSpaces} occupied spaces");
-
-            zauzeca.Remove(requestId);
+            Console.WriteLine($"Parking {zauzece.BrojParkinga} now has {parkingInfo.OccupiedSpaces} occupied spaces");
+            Console.WriteLine(zauzece.ToString());
         }
+        private static decimal CalculatePrice(Zauzece zauzece)
+        {
+            var parkingInfo = ParkingInfos[zauzece.BrojParkinga];
 
+            DateTime departureTime;
+            if (!DateTime.TryParseExact(zauzece.VremeNapustanja, "HH:mm", null, DateTimeStyles.None, out departureTime))
+                departureTime = DateTime.Now;
+
+            var departureDateTime = departureTime;
+            while (departureDateTime <= zauzece.VremeDolaska) departureDateTime = departureDateTime.AddDays(1);
+            var timeDifference = departureDateTime - zauzece.VremeDolaska;
+            var hours = Math.Ceiling(timeDifference.TotalHours);
+            var hoursInt = (int)hours;
+
+            var price = hoursInt * parkingInfo.PricePerHour * zauzece.BrojMesta;
+            return price;
+        }
         private static void SendParkingInfo(Socket clientSocket)
         {
           

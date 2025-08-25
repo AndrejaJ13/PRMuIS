@@ -192,17 +192,47 @@ namespace Client
 
             if (ActiveRequests.ContainsKey(requestId))
             {
-                var message = $"Oslobađam: {requestId}";
+                var message = $"Hocu da oslobodim: {requestId}";
                 var data = Encoding.UTF8.GetBytes(message);
                 _tcpSocket.Send(data);
-                ActiveRequests.Remove(requestId);
-                Console.WriteLine("Parking space released.");
+
+                var buffer = new byte[1024];
+                var received = _tcpSocket.Receive(buffer);
+                var response = Encoding.UTF8.GetString(buffer, 0, received);
+
+                
+                if (decimal.TryParse(response, out var price))
+                {
+                    Console.WriteLine($"The parking fee is: {price} RSD");
+                    Console.Write("Do you want to proceed with releasing the parking space? (yes/no): ");
+                    var answer = Console.ReadLine()?.ToLower();
+
+                    if (answer == "yes" || answer == "y")
+                    {
+                        
+                        message = $"Oslobađam: {requestId}";
+                        data = Encoding.UTF8.GetBytes(message);
+                        _tcpSocket.Send(data);
+                        ActiveRequests.Remove(requestId);
+                        Console.WriteLine("Parking space released.");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Parking release cancelled.");
+                    }
+                }
+                else
+                {
+                    
+                    Console.WriteLine($"Error: {response}");
+                }
             }
             else
             {
                 Console.WriteLine("Invalid request ID.");
             }
         }
+
 
         private static byte[] SerializeObject(object obj)
         {
