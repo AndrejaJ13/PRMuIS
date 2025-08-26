@@ -158,19 +158,74 @@ namespace Server
                 return;
             }
 
-            if (parkingLotInfo.TotalSpaces - parkingLotInfo.OccupiedSpaces < zauzece.BrojMesta)
+            var availableSpaces = parkingLotInfo.TotalSpaces - parkingLotInfo.OccupiedSpaces;
+
+            if (availableSpaces == 0)
             {
-                var badRequestResponse = Encoding.UTF8.GetBytes("Not enough free parking spaces.");
+                var badRequestResponse = Encoding.UTF8.GetBytes("No free parking spaces.");
                 clientSocket.Send(badRequestResponse);
                 return;
             }
 
-            var requestId = _nextRequestId++;
-            zauzeca[requestId] = zauzece;
+            
+            DateTime departureTime;
+            if (!DateTime.TryParseExact(zauzece.VremeNapustanja, "HH:mm", null, DateTimeStyles.None, out departureTime))
+            {
+                var invalidTimeFormatResponse = Encoding.UTF8.GetBytes("Invalid time format. Use HH:mm");
+                clientSocket.Send(invalidTimeFormatResponse);
+                return;
+            }
+
+            var todayWithDepartureTime = DateTime.Today.Add(departureTime.TimeOfDay);
+            var currentTime = DateTime.Now;
+
+            if (currentTime.TimeOfDay >= departureTime.TimeOfDay)
+            {
+                var invalidTimeResponse =
+                    Encoding.UTF8.GetBytes("Invalid departure time. Departure time must be in the future.");
+                clientSocket.Send(invalidTimeResponse);
+                return;
+            }
+
+            if (availableSpaces - zauzece.BrojMesta < 0)
+            {
+                var okResponse = Encoding.UTF8.GetBytes($"There is only this many free spaces: {availableSpaces}");
+                clientSocket.Send(okResponse);
+
+                var buffer = new byte[1024];
+                var received = clientSocket.Receive(buffer);
+
+                if (received == 0)
+                {
+                    clientSocket.Close();
+                    ClientSockets.Remove(clientSocket);
+                    return;
+                }
+
+                var message = Encoding.UTF8.GetString(buffer, 0, received);
+                if (message == "Yes")
+                {
+                    var requestId = _nextRequestId++;
+                    zauzece.BrojMesta = availableSpaces;
+                    zauzeca[requestId] = zauzece;
+                    parkingLotInfo.OccupiedSpaces += zauzece.BrojMesta;
+
+                    okResponse = Encoding.UTF8.GetBytes(requestId.ToString());
+                    clientSocket.Send(okResponse);
+
+                    Console.WriteLine(
+                        $"Parking {zauzece.BrojParkinga} now has {parkingLotInfo.OccupiedSpaces} occupied spaces");
+                }
+
+                return;
+            }
+
+            var requestId2 = _nextRequestId++;
+            zauzeca[requestId2] = zauzece;
             parkingLotInfo.OccupiedSpaces += zauzece.BrojMesta;
 
-            var okResponse = Encoding.UTF8.GetBytes(requestId.ToString());
-            clientSocket.Send(okResponse);
+            var okResponse2 = Encoding.UTF8.GetBytes(requestId2.ToString());
+            clientSocket.Send(okResponse2);
 
             Console.WriteLine(
                 $"Parking {zauzece.BrojParkinga} now has {parkingLotInfo.OccupiedSpaces} occupied spaces");
