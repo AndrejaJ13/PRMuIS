@@ -158,21 +158,52 @@ namespace Client
                 {
                     BrojParkinga = parkingNumber,
                     BrojMesta = spacesNeeded,
-                    VremeNapustanja = departureTime
+                    VremeNapustanja = departureTime,
+                    VremeDolaska = DateTime.Now,
                 };
 
                 var data = SerializeObject(zauzece);
                 _tcpSocket.Send(data);
 
-              
                 var buffer = new byte[1024];
                 var received = _tcpSocket.Receive(buffer);
                 var response = Encoding.UTF8.GetString(buffer, 0, received);
 
+              
                 if (int.TryParse(response, out var requestId))
                 {
                     ActiveRequests[requestId] = zauzece;
                     Console.WriteLine($"Parking request accepted. Your request ID is: {requestId}");
+                }
+                else if (response.StartsWith("There is only this many free spaces: "))
+                {
+                    Console.WriteLine(response);
+                    Console.Write("Do you want to proceed with allocating the parking spaces? (yes/no): ");
+                    var answer = Console.ReadLine()?.ToLower();
+
+                    if (answer == "yes" || answer == "y")
+                    {
+                        var availableSpaces = int.Parse(response.Substring("There is only this many free spaces: ".Length));
+                        zauzece.BrojMesta = availableSpaces;
+
+                        var message = "Yes";
+                        data = Encoding.UTF8.GetBytes(message);
+                        _tcpSocket.Send(data);
+
+                        received = _tcpSocket.Receive(buffer);
+                        var requestIdResponse = Encoding.UTF8.GetString(buffer, 0, received);
+                        int.TryParse(requestIdResponse, out var requestId2);
+
+                        Console.WriteLine($"Parking request accepted. Your request ID is: {requestId2}");
+                        ActiveRequests[requestId2] = zauzece;
+                    }
+                    else
+                    {
+                        var message = "No";
+                        data = Encoding.UTF8.GetBytes(message);
+                        _tcpSocket.Send(data);
+                        Console.WriteLine("Parking request cancelled.");
+                    }
                 }
                 else
                 {
