@@ -141,6 +141,33 @@ namespace Client
             }
         }
 
+        private static List<Car> CollectCarInformation(int numberOfSpaces)
+        {
+            var cars = new List<Car>();
+
+            for (var i = 0; i < numberOfSpaces; i++)
+            {
+                Console.WriteLine($"\nEnter information for car {i + 1}:");
+                var car = new Car();
+
+                Console.Write("Manufacturer: ");
+                car.Manufacturer = Console.ReadLine();
+
+                Console.Write("Model: ");
+                car.Model = Console.ReadLine();
+
+                Console.Write("Color: ");
+                car.Color = Console.ReadLine();
+
+                Console.Write("License Plate: ");
+                car.LicensePlate = Console.ReadLine();
+
+                cars.Add(car);
+            }
+
+            return cars;
+        }
+
         private static void RequestParking()
         {
             try
@@ -154,12 +181,19 @@ namespace Client
                 Console.Write("Enter expected departure time (HH:mm): ");
                 var departureTime = Console.ReadLine();
 
+                Console.Write("Do you want to include car information? (yes/no): ");
+                var includeCarInfo = Console.ReadLine()?.ToLower();
+                var cars = new List<Car>();
+
+                if (includeCarInfo == "yes" || includeCarInfo == "y") cars = CollectCarInformation(spacesNeeded);
+
                 var zauzece = new Zauzece
                 {
                     BrojParkinga = parkingNumber,
                     BrojMesta = spacesNeeded,
                     VremeNapustanja = departureTime,
                     VremeDolaska = DateTime.Now,
+                    Cars = cars
                 };
 
                 var data = SerializeObject(zauzece);
