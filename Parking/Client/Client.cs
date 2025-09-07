@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -217,18 +218,25 @@ namespace Client
 
                     if (answer == "yes" || answer == "y")
                     {
-                        var availableSpaces = int.Parse(response.Substring("There is only this many free spaces: ".Length));
-                        zauzece.BrojMesta = availableSpaces;
+                      
+                        var availableSpaces =
+                            int.Parse(response.Substring("There is only this many free spaces: ".Length));
+                        zauzece.Cars = zauzece.Cars.Take(availableSpaces).ToList();
 
+                       
                         var message = "Yes";
                         data = Encoding.UTF8.GetBytes(message);
                         _tcpSocket.Send(data);
 
+                      
                         received = _tcpSocket.Receive(buffer);
                         var requestIdResponse = Encoding.UTF8.GetString(buffer, 0, received);
                         int.TryParse(requestIdResponse, out var requestId2);
-
                         Console.WriteLine($"Parking request accepted. Your request ID is: {requestId2}");
+                        Console.WriteLine("Parking space allocated.");
+
+                    
+                        zauzece.BrojMesta = availableSpaces;
                         ActiveRequests[requestId2] = zauzece;
                     }
                     else
