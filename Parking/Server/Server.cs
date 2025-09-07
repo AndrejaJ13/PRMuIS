@@ -18,13 +18,20 @@ namespace Server
         private static readonly List<Socket> ClientSockets = new List<Socket>();
         private static int _nextRequestId = 1;
         private static readonly Dictionary<int, ParkingLotInfo> ParkingInfos = new Dictionary<int, ParkingLotInfo>();
-        
+        private static readonly Dictionary<int, decimal> ParkingEarnings = new Dictionary<int, decimal>();
+
 
         private static void Main(string[] args)
         {
             Console.WriteLine("Parking Server Starting...");
 
-          
+
+            Console.CancelKeyPress += (sender, e) =>
+            {
+                e.Cancel = true;
+                DisplayTotalEarnings();
+                Environment.Exit(0);
+            };
 
 
             InitializeParkingData();
@@ -97,7 +104,7 @@ namespace Server
                     PricePerHour = pricePerHour
                 };
             }
-         
+            foreach (var parkingId in ParkingInfos.Keys) ParkingEarnings[parkingId] = 0;
         }
 
         private static void HandleUdpClient(Socket udpSocket)
@@ -276,6 +283,7 @@ namespace Server
             }
 
             var price = CalculatePrice(zauzece);
+            ParkingEarnings[zauzece.BrojParkinga] += price;
 
             var parkingInfo = ParkingInfos[zauzece.BrojParkinga];
             parkingInfo.OccupiedSpaces -= zauzece.BrojMesta;
@@ -362,6 +370,10 @@ namespace Server
                 var bf = new BinaryFormatter();
                 return (T)bf.Deserialize(ms);
             }
+        }
+        private static void DisplayTotalEarnings()
+        {
+            foreach (var parking in ParkingEarnings) Console.WriteLine($"Parking {parking.Key}: {parking.Value} RSD");
         }
 
     }

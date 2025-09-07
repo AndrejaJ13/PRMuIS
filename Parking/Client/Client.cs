@@ -138,7 +138,7 @@ namespace Client
                 Console.WriteLine($"Parking {pair.Key}:");
                 Console.WriteLine($"  Total Spaces: {pair.Value.TotalSpaces}");
                 Console.WriteLine($"  Occupied Spaces: {pair.Value.OccupiedSpaces}");
-                Console.WriteLine($"  Price per Hour: {pair.Value.PricePerHour:C}");
+                Console.WriteLine($"  Price per Hour: {pair.Value.PricePerHour} RSD");
             }
         }
 
