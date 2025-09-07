@@ -18,10 +18,14 @@ namespace Server
         private static readonly List<Socket> ClientSockets = new List<Socket>();
         private static int _nextRequestId = 1;
         private static readonly Dictionary<int, ParkingLotInfo> ParkingInfos = new Dictionary<int, ParkingLotInfo>();
+        
 
         private static void Main(string[] args)
         {
             Console.WriteLine("Parking Server Starting...");
+
+          
+
 
             InitializeParkingData();
 
@@ -131,7 +135,11 @@ namespace Server
 
                 var message = Encoding.UTF8.GetString(buffer, 0, received);
 
-                if (message.StartsWith("Oslobađam: "))
+                if (message.StartsWith("Hocu da oslobodim: "))
+                {
+                    HandleParkingReleaseRequest(clientSocket, message);
+                }
+                else if (message.StartsWith("Oslobađam: "))
                 {
                     HandleParkingRelease(message);
                 }
@@ -140,6 +148,7 @@ namespace Server
                     var zauzece = DeserializeObject<Zauzece>(buffer);
                     HandleParkingRequest(clientSocket, zauzece);
                 }
+               
             }
             catch (Exception ex)
             {
@@ -354,5 +363,6 @@ namespace Server
                 return (T)bf.Deserialize(ms);
             }
         }
+
     }
 }
