@@ -293,15 +293,49 @@ namespace Server
         }
         private static void SendParkingInfo(Socket clientSocket)
         {
-          
-            var parkingData = SerializeObject(ParkingInfos);
+            try
+            {
+                
+                var parkingData = SerializeObject(ParkingInfos);
 
-            var dataSize = BitConverter.GetBytes(parkingData.Length);
-            clientSocket.Send(dataSize);
+                var dataSize = BitConverter.GetBytes(parkingData.Length);
+                if (!SendAll(clientSocket, dataSize))
+                {
+                    return;
+                }
 
-            clientSocket.Send(parkingData);
+                SendAll(clientSocket, parkingData);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending parking info: {ex.Message}");
+                clientSocket.Close();
+                ClientSockets.Remove(clientSocket);
+            }
         }
 
+        private static bool SendAll(Socket socket, byte[] data)
+        {
+            try
+            {
+                var totalSent = 0;
+                while (totalSent < data.Length)
+                {
+                    var remaining = data.Length - totalSent;
+                    var sent = socket.Send(data, totalSent, remaining, SocketFlags.None);
+
+                    if (sent <= 0) return false;
+
+                    totalSent += sent;
+                }
+
+                return true;
+            }
+            catch (SocketException)
+            {
+                return false;
+            }
+        }
         private static byte[] SerializeObject(object obj)
         {
             using (var ms = new MemoryStream())
